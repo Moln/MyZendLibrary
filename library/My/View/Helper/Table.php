@@ -5,9 +5,8 @@ use Zend_View_Helper_HtmlElement;
 /**
  * 表格视图
  *
- * @author maomao.thx@gmail.com
- * @copyright Copyright (c) 2009 Green Shore (http://www.iwgame.com)
- * @version $Id: Table.php 790 2013-03-15 08:56:56Z maomao $
+ * @author maomao
+ * @version $Id: Table.php 1314 2014-02-07 22:47:35Z maomao $
  */
 class Table extends Zend_View_Helper_HtmlElement
 {
