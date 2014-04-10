@@ -13,16 +13,17 @@ use My\Payment\Data\OrderResult;
  * Class VnetoneSms
  * @package My\Payment\Service
  * @author Xiemaomao
- * @version $Id: VnetoneSms.php 1279 2014-01-24 01:13:41Z maomao $
+ * @version $Id: VnetoneSms.php 1334 2014-03-18 18:10:38Z maomao $
  */
 class VnetoneSms extends ChannelPay
 {
     protected static $name = '盈华讯方-短信';
     protected $gateway = 'http://ydzf.vnetone.com/Default_mo.aspx';
 
-    const ORDER_ERROR  = 'orderError';
-    const VALID_ERROR  = 'validError';
-    const DENY_IP      = 'denyIp';
+    const ORDER_NOT_FOUND   = 'ORDER_NOT_FOUND';
+    const ORDER_COMPLETED   = 'ORDER_COMPLETED';
+    const VALID_ERROR       = 'VALID_ERROR';
+    const DENY_IP           = 'DENY_IP';
 
     /**
      * 跳转时传递参数
@@ -82,8 +83,12 @@ class VnetoneSms extends ChannelPay
 
         //订单验证
         $orderResult = $this->loadOrderResult($params['sporder']);
-        if (!$orderResult || $orderResult->isCompleted()) {
-            $this->setError(self::ORDER_ERROR);
+        if (!$orderResult) {
+            $this->setError(self::ORDER_NOT_FOUND);
+            return false;
+        }
+        if ($orderResult->isCompleted()) {
+            $this->setError(self::ORDER_COMPLETED);
             return false;
         }
 
@@ -95,11 +100,11 @@ class VnetoneSms extends ChannelPay
 
     public function serverResponse()
     {
-        if ($this->getError()) {
+        if (!$this->getError() || $this->getError() == self::ORDER_COMPLETED) {
+            echo 'okydzf';
+        } else if ($this->getError()) {
             echo 'failydzf';
             $this->logger($this->getError(), $_REQUEST);
-        } else {
-            echo 'okydzf';
         }
         exit;
     }

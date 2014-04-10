@@ -6,7 +6,7 @@ use ArrayAccess, IteratorAggregate, ArrayIterator, Zend_Db_Table_Abstract;
  * Model
  *
  * @author maomao
- * @version $Id: Model.php 790 2013-03-15 08:56:56Z maomao $
+ * @version $Id: Model.php 1348 2014-04-03 18:24:19Z maomao $
  */
 abstract class Model implements ArrayAccess, IteratorAggregate
 {
@@ -80,7 +80,7 @@ abstract class Model implements ArrayAccess, IteratorAggregate
     public function __set($columnName, $value)
     {
         if (!array_key_exists($columnName, $this->_data)) {
-            throw new \RuntimeException('Specified column is not a string');
+            throw new \RuntimeException("Specified column \"$columnName\" is not in the row");
         }
         $this->_data[$columnName] = $value;
         $this->modifiedFields[$columnName] = true;

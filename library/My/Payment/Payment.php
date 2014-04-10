@@ -4,7 +4,7 @@
  *
  * @author   maomao
  * @DateTime 12-5-30 下午5:21
- * @version  $Id: Payment.php 790 2013-03-15 08:56:56Z maomao $
+ * @version  $Id: Payment.php 1335 2014-03-25 17:43:10Z maomao $
  */
 namespace My\Payment;
 
@@ -37,11 +37,11 @@ class Payment
             'bank'      => [
                 self::ALIPAY   => '支付宝',
                 self::YEEPAY   => '易宝支付',
-                self::PAY19PAY => '19Pay',
+                //self::PAY19PAY => '19Pay',
             ],
             'phoneCard' => [
                 self::YEEPAY   => '易宝支付',
-                self::PAY19PAY => '19Pay',
+//                self::PAY19PAY => '19Pay',
                 self::UNTX     => '新宽联',
                 self::VNETONE_PHONE => '盈华讯方-神州行',
             ]

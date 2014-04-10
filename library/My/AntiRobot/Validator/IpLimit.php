@@ -24,11 +24,19 @@ namespace My\AntiRobot\Validator;
  *
  * @package My\AntiRobot\Validator
  * @author Xiemaomao
- * @version $Id: IpLimit.php 1279 2014-01-24 01:13:41Z maomao $
+ * @version $Id: IpLimit.php 1331 2014-03-17 23:01:04Z maomao $
  */
 class IpLimit extends AbstractLimitValidator implements FormResultInterface
 {
-    private $skipSession = false, $lock;
+    private $skipSession = false, $lock, $disableLAN = true;
+
+    const INVALID = 'INVALID';
+    const INVALID_IP_AREA = 'INVALID_IP_AREA';
+
+    protected $messages = array(
+        self::INVALID => 'Lock IP: %lock%',
+        self::INVALID_IP_AREA => 'Invalid ip area.',
+    );
 
     private function getLock()
     {
@@ -37,6 +45,9 @@ class IpLimit extends AbstractLimitValidator implements FormResultInterface
                 function ($ip, $lockId) {
                     $lockId .= '_LOCK';
                     $this->lock = (bool)$this->getCache()->load($lockId);
+
+                    if ($this->lock) $this->msgVars += array('%lock%' => $ip);
+
                     return !$this->lock;
                 }
             );
@@ -68,6 +79,46 @@ class IpLimit extends AbstractLimitValidator implements FormResultInterface
         return $this;
     }
 
+
+    public function setDisableLAN($disableLAN)
+    {
+        $this->disableLAN = $disableLAN;
+    }
+
+    /**
+     * 私有IP地址验证
+     * A	10.0.0.0 – 10.255.255.255	16,777,216	10.0.0.0/8 (255.0.0.0)	24位
+     * B	172.16.0.0 – 172.31.255.255	1,048,576	172.16.0.0/12 (255.240.0.0)	20位
+     * C	192.168.0.0 – 192.168.255.255	65,536	192.168.0.0/16 (255.255.0.0)	16位
+     * E	240.0.0.0 – 255.255.255.255
+     */
+    public function isValidIP()
+    {
+        $ipList = $this->getIpList();
+
+        $a = array('min' => ip2long('10.0.0.0'),    'max' => ip2long('10.255.255.255'));
+        $b = array('min' => ip2long('172.16.0.0'),  'max' => ip2long('172.31.255.255'));
+        $c = array('min' => ip2long('192.168.0.0'), 'max' => ip2long('192.168.255.255'));
+        $e = array('min' => ip2long('240.0.0.0'),   'max' => ip2long('255.255.255.255'));
+        $l = array('min' => ip2long('127.0.0.0'),   'max' => ip2long('127.0.0.255'));
+
+        if ($this->disableLAN) {
+            foreach ($ipList as $ip) {
+                $ip = ip2long($ip);
+
+                if (($ip > $a['min'] && $ip < $a['max']) ||
+                    ($ip > $b['min'] && $ip < $b['max']) ||
+                    ($ip > $c['min'] && $ip < $c['max']) ||
+                    ($ip > $e['min'] && $ip < $e['max']) ||
+                    ($ip > $l['min'] && $ip < $l['max'])
+                ) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     /**
      *
      * @return bool
@@ -76,9 +127,16 @@ class IpLimit extends AbstractLimitValidator implements FormResultInterface
     {
         $lock = $this->getLock();
 
+        if (!$this->isValidIP()) {
+            $this->setError(self::INVALID_IP_AREA);
+            return false;
+        }
+
         if ($lock && $this->skipSession && \Zend_Session::sessionExists()) {
             return true;
         }
+
+        if ($lock) $this->setError(self::INVALID);
 
         return !$lock;
     }
@@ -86,10 +144,11 @@ class IpLimit extends AbstractLimitValidator implements FormResultInterface
     /**
      * @param bool $formValidResult
      * @return void
+     * @todo IP chain lock
      */
     public function setFormValidResult($formValidResult)
     {
-        if ($formValidResult || $this->getLock()) {
+        if ($this->getLock()) {
             return;
         }
 

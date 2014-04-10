@@ -6,18 +6,18 @@ namespace My\Controller\Action\Helper;
  *
  * @author   maomao
  * @DateTime 12-6-5 下午2:05
- * @version  $Id: Message.php 790 2013-03-15 08:56:56Z maomao $
+ * @version  $Id: Message.php 1335 2014-03-25 17:43:10Z maomao $
  */
 class Message extends \Zend_Controller_Action_Helper_Abstract
 {
-    public function direct($message, $code = 0)
+    public function direct($message, $code = 0, array $data = null)
     {
         if ($this->getRequest()->isXmlHttpRequest()) {
             $this->getActionController()->getHelper('json')->sendJson(
                 [
                     'code' => $code,
                     'msg'  => $message
-                ]
+                ] + ($data ? : [])
             );
         }
 

@@ -10,13 +10,13 @@ use Zend_Registry;
  *
  * @author   maomao
  * @DateTime 12-5-24 下午1:36
- * @version  $Id: Product.php 1310 2014-02-07 02:27:31Z maomao $
+ * @version  $Id: Product.php 1339 2014-03-26 01:04:53Z maomao $
  */
 abstract class Product
 {
     private static $config;
 
-    protected $id, $name, $key;
+    protected $id, $name, $key, $enabled = true;
 
     public function setId($id)
     {
@@ -38,6 +38,22 @@ abstract class Product
     public function getKey()
     {
         return $this->key;
+    }
+
+    /**
+     * @param boolean $enabled
+     */
+    public function setEnabled($enabled)
+    {
+        $this->enabled = $enabled;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isEnabled()
+    {
+        return $this->enabled;
     }
 
     protected $areaNodeClass;

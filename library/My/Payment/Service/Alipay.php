@@ -173,10 +173,11 @@ class Alipay extends ChannelPay
         echo 'success';
     }
 
-    const PARAMS_ERROR = 'paramsError';
-    const VALID_ERROR  = 'validError';
-    const ORDER_ERROR  = 'orderError';
-    const STATUS_ERROR = 'statusError';
+    const PARAMS_ERROR = 'PARAMS_ERROR';
+    const VALID_ERROR  = 'VALID_ERROR';
+    const ORDER_COMPLETED  = 'ORDER_COMPLETED';
+    const ORDER_NOT_FOUND  = 'ORDER_NOT_FOUND';
+    const STATUS_ERROR = 'STATUS_ERROR';
 
     /**
      *
@@ -199,8 +200,12 @@ class Alipay extends ChannelPay
         }
 
         $orderResult = $this->loadOrderResult($params['out_trade_no']);
-        if (!$orderResult || $orderResult->isCompleted()) {
-            $this->setError(self::ORDER_ERROR);
+        if (!$orderResult) {
+            $this->setError(self::ORDER_NOT_FOUND);
+            return false;
+        }
+        if ($orderResult->isCompleted()) {
+            $this->setError(self::ORDER_COMPLETED);
             return false;
         }
 
@@ -262,7 +267,15 @@ class Alipay extends ChannelPay
 
     public function serverResponse()
     {
-        echo $this->getError() ? 'fail' : 'success';
+        if ($this->getError()) {
+            if ($this->getError() == self::ORDER_COMPLETED) {
+                echo 'success';
+            } else {
+                echo 'fail';
+            }
+        } else {
+            echo 'success';
+        }
     }
 
     public function clientResponse()

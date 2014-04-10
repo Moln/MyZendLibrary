@@ -9,7 +9,7 @@ namespace My\AntiRobot;
  * Class Anti
  * @package My\AntiRobot
  * @author Moln Xie
- * @version $Id: AntiRobot.php 1297 2014-01-27 19:28:49Z maomao $
+ * @version $Id: AntiRobot.php 1329 2014-03-13 00:02:24Z maomao $
  */
 class AntiRobot
 {
@@ -84,6 +84,10 @@ class AntiRobot
         $this->validators[strtolower(end($name))] = $validator;
     }
 
+    /**
+     * @param $name
+     * @return null|Validator\AbstractValidator
+     */
     public function getValidator($name)
     {
         return isset($this->validators[$name]) ? $this->validators[$name] : null;
@@ -98,6 +102,10 @@ class AntiRobot
         return $this;
     }
 
+    /**
+     *
+     * @return Validator\AbstractValidator
+     */
     public function getInvalid()
     {
         return $this->invalid;

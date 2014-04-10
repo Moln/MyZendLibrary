@@ -11,7 +11,7 @@ use My\Stdlib\Fragment\Instance;
  * Class Search
  * @package Platform\Ip
  * @author Xiemaomao
- * @version $Id: IpLocation.php 1301 2014-01-27 23:31:26Z maomao $
+ * @version $Id: IpLocation.php 1355 2014-04-09 01:57:34Z maomao $
  */
 class IpLocation
 {
@@ -22,7 +22,7 @@ class IpLocation
 
     protected $fileHandle;
 
-    protected static $province = [
+    public static $province = [
         '北京市', '天津市', '河北省', '山西省', '内蒙古', '辽宁省',
         '吉林省', '黑龙江省', '上海市', '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省',
         '河南省', '湖北省', '湖南省', '广东省', '广西', '海南省', '重庆市', '四川省',

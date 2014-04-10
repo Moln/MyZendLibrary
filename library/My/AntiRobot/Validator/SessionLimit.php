@@ -16,7 +16,7 @@ namespace My\AntiRobot\Validator;
  *
  * @package My\AntiRobot\Validator
  * @author Xiemaomao
- * @version $Id: SessionLimit.php 1296 2014-01-27 19:20:23Z maomao $
+ * @version $Id: SessionLimit.php 1330 2014-03-16 23:58:59Z maomao $
  */
 class SessionLimit extends AbstractLimitValidator implements FormResultInterface
 {
@@ -25,6 +25,14 @@ class SessionLimit extends AbstractLimitValidator implements FormResultInterface
         $totalOverNumber = 50,
         $lock;
     protected $limit = 15;
+
+    const INVALID_IP = 'INVALID_IP';
+    const OVER_LIMIT = 'INVALID_OVER_LIMIT';
+
+    protected $messages = array(
+        self::INVALID_IP => 'Lock IP: %lock%',
+        self::OVER_LIMIT => 'Over limit.',
+    );
 
     /**
      * 1个IP, SESSION 验证错误请求超过此设置的IP锁定
@@ -44,6 +52,9 @@ class SessionLimit extends AbstractLimitValidator implements FormResultInterface
                 function ($ip, $lockId) {
                     $lockId .= '_LOCK';
                     $this->lock = (bool)$this->getCache()->load($lockId);
+
+                    if ($this->lock) $this->msgVars += array('%lock%' => $ip);
+
                     return !$this->lock;
                 }
             );
@@ -73,10 +84,14 @@ class SessionLimit extends AbstractLimitValidator implements FormResultInterface
     public function isValid()
     {
         if ($this->session->count > $this->limit) {
+            $this->setError(self::OVER_LIMIT);
             return false;
         }
 
-        return !$this->getLock();
+        $lock = $this->getLock();
+        if ($lock) $this->setError(self::INVALID_IP);
+
+        return !$lock;
     }
 
     /**
@@ -86,10 +101,6 @@ class SessionLimit extends AbstractLimitValidator implements FormResultInterface
      */
     public function setFormValidResult($formValidResult)
     {
-        if ($formValidResult) {
-            return;
-        }
-
         $this->session->count = $this->session->count ? $this->session->count+1 : 1;
 
         if ($this->getLock()) {

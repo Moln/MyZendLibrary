@@ -5,7 +5,7 @@ namespace My\AntiRobot\Validator;
  * Class AbstractLimitValidator
  * @package My\AntiRobot\Validator
  * @author Xiemaomao
- * @version $Id: AbstractLimitValidator.php 1296 2014-01-27 19:20:23Z maomao $
+ * @version $Id: AbstractLimitValidator.php 1330 2014-03-16 23:58:59Z maomao $
  */
 abstract class AbstractLimitValidator extends AbstractValidator
 {
@@ -14,12 +14,12 @@ abstract class AbstractLimitValidator extends AbstractValidator
         $limit = 50,
         $lifetime = 3600,
         $keyPrefix;
+    private $ipList;
 
     public function __construct(array $options)
     {
         $name = isset($options['robotName']) ? $options['robotName'] : 'default';
         $this->keyPrefix = $name . '_' . str_replace('\\', '_', get_class($this));
-
 
         parent::__construct($options);
     }
@@ -57,19 +57,32 @@ abstract class AbstractLimitValidator extends AbstractValidator
         return $this;
     }
 
+    protected function getIpList()
+    {
+        if (!$this->ipList) {
+            $request = $this->getRequest();
+            $ips[] = $request->getServer('REMOTE_ADDR');
+
+            $ip1 = $request->getServer('HTTP_X_FORWARDED_FOR');
+            $ip2 = $request->getServer('HTTP_CLIENT_IP');
+            if ($ip1 || $ip2) {
+                $ipx = $ip1 . ',' .  $ip2;
+                $ipx = array_filter(array_map('trim', explode(',', $ipx)), function ($ip) {
+                    return (bool)ip2long($ip);
+                });
+                $ips = array_merge($ips, $ipx);
+            }
+            $this->ipList = array_unique($ips);
+        }
+
+        return $this->ipList;
+    }
+
 
     protected function loopIp(\Closure $call)
     {
-        $request = $this->getRequest();
-        $ips[] = $request->getServer('REMOTE_ADDR');
-        if ($ipx = $request->getServer('HTTP_X_FORWARDED_FOR')) {
-            array_merge($ips, array_filter(array_map('ip2long', array_map('trim', explode(',', $ipx)))));
-        }
-        if ($ipx = $request->getServer('HTTP_CLIENT_IP')) {
-            array_merge($ips, $ipx);
-        }
-
-        foreach ($ips as $ip) {
+        $ipList = $this->getIpList();
+        foreach ($ipList as $ip) {
             if ($call($ip, $this->keyPrefix . dechex(ip2long($ip))) === false) {
                 break;
             }

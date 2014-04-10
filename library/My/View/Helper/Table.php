@@ -6,7 +6,7 @@ use Zend_View_Helper_HtmlElement;
  * 表格视图
  *
  * @author maomao
- * @version $Id: Table.php 1314 2014-02-07 22:47:35Z maomao $
+ * @version $Id: Table.php 1348 2014-04-03 18:24:19Z maomao $
  */
 class Table extends Zend_View_Helper_HtmlElement
 {
@@ -63,6 +63,7 @@ class Table extends Zend_View_Helper_HtmlElement
      * - template   string   数据过滤器: 模板替换
      * - function   function 数据过滤器: 自定义函数处理,参数1: $row;参数2: $key;
      * - viewHelper string   数据过滤器: 视图助手
+     * - value      string   数据值
      *
      * @param array $rows
      * @param array $attrs
@@ -229,7 +230,7 @@ class Table extends Zend_View_Helper_HtmlElement
                 }
             }
 
-            foreach ($rows as $index => &$row) {
+            foreach ($rows as &$row) {
                 foreach ($columnsKey as $key => $filters) {
                     $row[$key] = $this->filterRow($filters, $row, $key);
                 }
@@ -239,12 +240,12 @@ class Table extends Zend_View_Helper_HtmlElement
         return $rows;
     }
 
-    protected function loopCreateColumns(&$columnRows, &$columns, $index = 0, &$rowspan = array(1))
+    protected function loopCreateColumns(&$columns, $index = 0, &$rowspan = array(1))
     {
         if (isset($columns['children'])) {
             if ($index-1 >= 0) {
                 if (isset($rowspan[$index-1])) {
-                    $rowspan[$index-1]++;;
+                    $rowspan[$index-1]++;
                 } else {
                     $rowspan[$index-1] = 1;
                 }
@@ -253,18 +254,21 @@ class Table extends Zend_View_Helper_HtmlElement
                 if (!is_array($column)) {
                     $column = array('title' => $column);
                 }
-                $columnRows[$index][] = &$column;
+                if (is_string($key)) {
+                    $column['value'] = $key;
+                }
+                $this->columnRows[$index][] = &$column;
                 if (!isset($column['children'])) {
                     $column['attrs']['rowspan'] = &$rowspan[$index];
                     $columnKey = $column;
                     unset($columnKey['title'], $columnKey['attrs']);
-                    $this->columnsKey[$key] = $columnKey;
+                    $this->columnsKey[] = $columnKey;
                 } else {
                     $column['attrs']['colspan'] = count($column['children']);
                     $columns['attrs']['colspan'] += $column['attrs']['colspan']-1;
                 }
 
-                $this->loopCreateColumns($columnRows, $column, $index+1, $rowspan);
+                $this->loopCreateColumns($column, $index+1, $rowspan);
                 unset($column['children']);
 
             }
@@ -277,9 +281,9 @@ class Table extends Zend_View_Helper_HtmlElement
     public function createColumns()
     {
         if (!$this->columnRows) {
-            $columnRows = $this->columnsKey = array();
+            $this->columnsKey = array();
             $columns = array('children' => $this->columns, 'attrs' => array('colspan' => 0));
-            $this->loopCreateColumns($this->columnRows, $columns);
+            $this->loopCreateColumns($columns);
         }
 
         return $this;
@@ -333,13 +337,13 @@ class Table extends Zend_View_Helper_HtmlElement
                               ? $this->_htmlAttribs($this->rowsAttributes[$index])
                               : '' )
                            . '>';
-                    foreach ($this->columnsKey as $key => $filters) {
-                        $html .= '<td>';
-                        if (!empty($filters)) {
-                            $html .= $this->filterRow($filters, $row, $key);
-                        } else {
-                            $html .= $row[$key];
-                        }
+                    foreach ($this->columnsKey as $filters) {
+                        $tdAttrs = array();
+                        $render = $this->filterRow($filters, $row, $tdAttrs);
+
+                        $html .= '<td ' . (empty($tdAttrs) ? '' : $this->_htmlAttribs($tdAttrs));
+                        $html .= '>';
+                        $html .= $render;
                         $html .= '</td>';
                     }
                     $html .= '</tr>';
@@ -359,12 +363,18 @@ class Table extends Zend_View_Helper_HtmlElement
      *
      * @param array $filters
      * @param array $row
-     * @param string $key
+     * @param array $tdAttrs
      * @return string
      */
-    protected function filterRow($filters, $row, $key)
+    protected function filterRow($filters, $row, &$tdAttrs = array())
     {
-        $value = null;
+        if (isset($filters['value'])) {
+            $key = $filters['value'];
+            $value = $row[$key];
+            unset($filters['value']);
+        } else {
+            $key = $value = null;
+        }
 
         foreach ($filters as $filter => $data) {
             switch ($filter) {
@@ -372,18 +382,18 @@ class Table extends Zend_View_Helper_HtmlElement
                     if (isset($data[$row[$key]])) {
                         $value = $data[$row[$key]];
                     }
-                break;
+                    break;
                 case 'template':
                     $value = $this->template($data, $row);
-                break;
+                    break;
                 case 'function':
-                    $value = call_user_func($data, $row, $this);
-                break;
+                    $value = $data($row, $tdAttrs);
+                    break;
                 case 'viewHelper':
                     $value = $this->view->{$filter}($row[$key], $row);
-                break;
+                    break;
                 default:
-                break;
+                    break;
             }
         }
 
@@ -403,11 +413,14 @@ class Table extends Zend_View_Helper_HtmlElement
 
     protected function template($string, $row)
     {
-        $_lt = '{';
-        $_rt = '}';
-        extract($row);
-        return preg_replace('/\{([^\{\}]+)\}/e',
-                            'eval(\'return \' . stripslashes(\'$1\') . \';\')',
-                            (string) $string);
+
+        return preg_replace_callback(
+            '/\{([^\{\}]+)\}/',
+            function ($m) use ($row) {
+                extract($row);
+                return stripslashes(eval('return ' . $m[1] . ';'));
+            },
+            (string) $string
+        );
     }
 }

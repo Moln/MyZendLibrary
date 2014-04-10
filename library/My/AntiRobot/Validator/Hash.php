@@ -21,11 +21,16 @@ namespace My\AntiRobot\Validator;
  *
  * @package My\AntiRobot\Validator
  * @author Xiemaomao
- * @version $Id: Hash.php 1279 2014-01-24 01:13:41Z maomao $
+ * @version $Id: Hash.php 1329 2014-03-13 00:02:24Z maomao $
  */
 class Hash extends AbstractValidator
 {
     private $requestName = 'sign', $key, $implodeValues = array();
+
+    const INVALID_HASH = 'INVALID_HASH';
+    protected $messages = array(
+        self::INVALID_HASH => 'Invalid hash.',
+    );
 
     public function setRequestName($requestName)
     {
@@ -65,6 +70,11 @@ class Hash extends AbstractValidator
         $url = parse_url($url) + array('host' => null);
 
         $sign = md5($signStr . $url['host'] . $this->key);
-        return $this->getRequest()->getParam($this->requestName) == $sign;
+        if ($this->getRequest()->getParam($this->requestName) == $sign) {
+            return true;
+        } else {
+            $this->setError(self::INVALID_HASH);
+            return false;
+        }
     }
 }
